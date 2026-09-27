@@ -1,0 +1,10 @@
+name: Linux Fundamentals
+code: CIS20231N2
+instructor: Richard Gilson
+term: Fall 2026
+kind: tech
+order: 4
+notes: >
+  Hands-on Linux: command line, filesystem hierarchy, permissions, users/groups, processes,
+  package management, and shell scripting. Put commands on the board, have Marc predict the output
+  before revealing it, and prefer "what command would you run to..." questions.

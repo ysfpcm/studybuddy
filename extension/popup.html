@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --bg:#15171b; --panel:#1d2026; --ink:#e8e9ec; --muted:#9296a0; --line:#2d3139; --accent:#5b8ff0; --good:#2e9d62; --bad:#c9473d; }
+  body { margin:0; width:300px; background:var(--bg); color:var(--ink); font:14px/1.45 system-ui,"Segoe UI",sans-serif; }
+  .wrap { padding:14px; display:flex; flex-direction:column; gap:10px; }
+  header { display:flex; align-items:center; gap:10px; }
+  header img { width:32px; height:32px; }
+  header b { font-size:15px; }
+  .dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; background:var(--bad); }
+  .dot.ok { background:var(--good); }
+  .muted { color:var(--muted); font-size:12px; }
+  button, select { font:inherit; color:inherit; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:8px 10px; cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  button.on { background:var(--good); border-color:var(--good); color:#fff; font-weight:600; }
+  button:disabled { opacity:.5; cursor:default; }
+  .row { display:flex; gap:8px; } .row > * { flex:1; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px; }
+  .title { font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  label { display:flex; gap:8px; align-items:flex-start; font-size:13px; }
+  .err { color:#ff8a80; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><img src="icons/48.png" alt=""><div><b>Study Buddy</b><div class="muted"><span id="dot" class="dot"></span><span id="server">checking…</span></div></div></header>
+
+  <button id="follow" class="primary">Follow this tab</button>
+  <div class="muted" id="followHint">Your tutor will read this page's text live as you study — and only this tab.</div>
+
+  <div class="card" id="last" hidden>
+    <div class="title" id="lastTitle"></div>
+    <div class="muted" id="lastInfo"></div>
+    <div class="err" id="lastErr"></div>
+  </div>
+
+  <div class="row"><button id="send">Sync now</button><button id="save">Save to notes</button></div>
+  <select id="course"><option value="">Course: the one open in Study Buddy</option></select>
+  <label><input type="checkbox" id="autosave"> Auto-save pages I study into that course's notes (so the tutor can search them later)</label>
+  <div class="muted">Text goes only to Study Buddy on this PC (127.0.0.1). Tip: highlight text on the page and say "this part" — the tutor sees your highlight.</div>
+</div>
+<script src="popup.js"></script>
+</body>
+</html>

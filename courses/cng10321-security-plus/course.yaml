@@ -1,0 +1,10 @@
+name: Network Security Fundamentals (Security+)
+code: CNG10321N2
+instructor: Tom Atwood
+term: Fall 2026
+kind: tech
+order: 3
+notes: >
+  Aligned to the CompTIA Security+ exam. Focus on threats/attacks, security controls, cryptography
+  basics, identity and access management, and incident response. Use scenario questions that ask
+  for the BEST control or the MOST likely attack, and explain why the distractors are wrong.

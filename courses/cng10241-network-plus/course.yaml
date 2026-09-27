@@ -1,0 +1,10 @@
+name: "Networking I: Network+"
+code: CNG10241H3
+instructor: Joel Ramirez
+term: Fall 2026
+kind: tech
+order: 2
+notes: >
+  Prepares for the CompTIA Network+ exam. Tie concepts to the OSI model, ports/protocols, subnetting,
+  and troubleshooting methodology. Use exam-style scenario questions ("a user can't reach..., what
+  is the MOST likely cause?"). Drill subnetting until it's fast.

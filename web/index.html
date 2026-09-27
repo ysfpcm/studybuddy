@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Study Buddy</title>
+  <link rel="stylesheet" href="/static/vendor/katex/katex.min.css">
+  <link rel="stylesheet" href="/static/vendor/hljs.css">
+  <link rel="stylesheet" href="/static/style.css?v=20260927-2">
+</head>
+<body>
+<div id="app">
+  <!-- ============ left: courses, progress, spend ============ -->
+  <aside id="sidebar">
+    <div class="brand">
+      <div id="pet" class="pet mini" data-state="sleep">
+        <div class="pet-stage" title="Click me">
+          <div class="pet-scale">
+            <div class="pet-float">
+              <div class="antenna"><span class="tip"></span></div>
+              <div class="orb">
+                <span class="ring"></span>
+                <div class="visor"><span class="eye l"></span><span class="eye r"></span><span class="scan"></span></div>
+                <span class="shine"></span>
+              </div>
+            </div>
+            <div class="pet-shadow"></div>
+          </div>
+        </div>
+        <div class="brand-text">
+          <h1>Study Buddy</h1>
+          <div class="small"><span class="pet-name" contenteditable="plaintext-only" spellcheck="false" title="Rename me">Orbi</span> <span class="muted">·</span> <span class="pet-status muted">sleeping</span></div>
+        </div>
+      </div>
+      <div id="status" class="muted small"></div>
+    </div>
+
+    <div class="side-scroll">
+    <h2>My courses</h2>
+    <ul id="courses"></ul>
+
+    <div id="courseTools" class="row">
+      <button id="reindex" class="ghost" title="Pick up new files in this course's material folder">Re-index</button>
+      <button id="buildConcepts" class="ghost" title="Have Luna read the syllabus/material and list the concepts to master">Build concept map</button>
+    </div>
+
+    <h2>Progress</h2>
+    <div id="progress" class="small"></div>
+
+    <details id="aboutWrap">
+      <summary>About me (for analogies)</summary>
+      <textarea id="aboutMe" rows="7"></textarea>
+      <button id="saveAbout" class="ghost">Save</button>
+    </details>
+    </div>
+
+    <section id="spendBox">
+      <h2>Spend this month</h2>
+      <div id="spend" class="small"></div>
+    </section>
+  </aside>
+
+  <!-- ============ middle: war room, notes, and course summary ============ -->
+  <aside id="warPane">
+    <nav class="tabs" role="tablist">
+      <button id="toggleSidebar" class="pane-toggle" type="button" aria-controls="sidebar" aria-expanded="true" title="Hide courses">◀ Courses</button>
+      <button data-tab="war" class="on" role="tab">War room</button>
+      <button data-tab="notes" role="tab">Lessons & practice</button>
+      <button data-tab="tests" role="tab">Quiz</button>
+      <button data-tab="guide" role="tab">Course summary</button>
+      <button id="toggleChat" class="pane-toggle" type="button" aria-controls="studyChat" aria-expanded="true" title="Hide chat">Chat ▶</button>
+    </nav>
+
+    <!-- per chat: recap, weak spots, quick checks, board -->
+    <section id="tab-war" class="tab">
+      <div id="eyes" class="card eyes" hidden>
+        <img id="eyesImg" alt="What the tutor last saw">
+        <div id="eyesInfo" class="muted small">Sharing — the tutor looks only when it needs to.</div>
+      </div>
+      <div class="tab-head">
+        <div><div id="warTitle" class="tab-title">This chat</div><div id="recapAge" class="muted small"></div></div>
+        <button id="updateRecap" class="ghost" title="Refresh the recap from the conversation so far">↻ Update recap</button>
+      </div>
+      <div id="recap"><div class="empty">Start or open a chat — what you cover, the terms, what clicked, and your weak spots build up here as you talk.</div></div>
+      <h2>Board</h2>
+      <div id="board" class="muted small">Diagrams, code, math and tables the tutor puts up stay here for the chat.</div>
+    </section>
+
+    <!-- per course: synced pages, class files, breakdowns, and my notes -->
+    <section id="tab-notes" class="tab" hidden>
+      <div id="pageCard" class="card page-card" hidden>
+        <div class="page-head"><span>📖 Now reading</span><span id="pageAge" class="muted small"></span></div>
+        <a id="pageTitle" target="_blank" rel="noopener"></a>
+        <div id="pageInfo" class="muted small"></div>
+        <div id="pageHeadings" class="captured"></div>
+        <div class="row"><button id="savePage" class="primary small-btn" title="Save this lesson, write its breakdown, and prepare its test">Save &amp; study</button><button id="openPageNote" class="ghost" hidden>Open its note ↓</button></div>
+      </div>
+      <div class="tab-head">
+        <div><div class="tab-title">Lessons & practice</div><div id="notesCount" class="muted small"></div></div>
+        <input id="notesFilter" placeholder="Filter…" aria-label="Filter notes">
+      </div>
+      <div id="notesList"></div>
+    </section>
+
+    <section id="tab-tests" class="tab" hidden>
+      <div class="tab-head">
+        <div><div class="tab-title">Lesson tests</div><div class="muted small">10 or more questions per saved lesson. Every answer updates concept progress.</div></div>
+      </div>
+      <div id="lessonTests"></div>
+      <div id="lessonTestRun"></div>
+    </section>
+
+    <!-- per course: study guide across chats + notes -->
+    <section id="tab-guide" class="tab" hidden>
+      <div class="tab-head">
+        <div><div class="tab-title">Course summary</div><div id="guideAge" class="muted small"></div></div>
+        <button id="buildGuide" class="primary small-btn" title="Combine your notes, summaries and chat recaps into one study guide (Flex tier — cheap, can take a minute)">Build study guide</button>
+      </div>
+      <div id="guide" class="md"><div class="empty">Your study guide pulls together every note, your own notes, and what you've covered in chats — organized by section, in plain words, with where you stand. Save a few lesson pages or have a chat, then hit “Build study guide”.</div></div>
+    </section>
+  </aside>
+
+  <!-- ============ right: course home / chat ============ -->
+  <main id="studyChat">
+    <header id="courseHeader">
+      <div>
+        <div id="courseCode" class="muted small"></div>
+        <div id="courseTitle" class="course-title">Pick a course</div>
+      </div>
+      <div id="courseStats" class="muted small"></div>
+    </header>
+
+    <div id="controls">
+      <select id="mode" aria-label="Study mode"></select>
+      <div class="seg" role="group" aria-label="How to study">
+        <button data-ch="live" class="on" title="GPT-Live-1: natural full-duplex conversation">Voice · Premium</button><button data-ch="economy" title="Browser speech recognition + Luna + GPT-4o Mini TTS: lower-cost, turn-based">Voice · Economy</button><button data-ch="text">Text</button>
+      </div>
+      <button id="start" class="primary">Start session</button>
+      <button id="resume" hidden title="New session that continues the last conversation">Resume</button>
+      <button id="mute" disabled>Mute mic</button>
+      <select id="micSelect" title="Which microphone to use (picking one runs a quick test)"><option value="">🎤 System default mic</option></select>
+      <button id="share" title="Let the tutor see your screen when it needs to">👁 Share screen</button>
+      <button id="lookNow" disabled title="Show the tutor your screen right now">📸 Look</button>
+      <span id="meter" class="muted small"></span>
+      <div id="channelHint" class="muted small"></div>
+      <div id="micStatus" class="muted small"></div>
+    </div>
+
+    <!-- course home: this course's chats -->
+    <section id="home" class="view">
+      <div class="home-head">
+        <h2>Chats in this course</h2>
+        <span class="muted small">Start a session to begin a new one</span>
+      </div>
+      <div id="chatList"></div>
+    </section>
+
+    <!-- a chat: the live session or a past one -->
+    <section id="chatView" class="view" hidden>
+      <div class="chat-bar">
+        <button id="backHome" class="ghost">← Course chats</button>
+        <span id="chatTitle" class="muted small"></span>
+        <button id="continueChat" class="primary small-btn" hidden>Continue this chat</button>
+      </div>
+      <div id="transcript" aria-live="polite"></div>
+    </section>
+
+    <div id="attachments" hidden></div>
+    <form id="composer">
+      <label class="attach" title="Attach a screenshot or photo (or just paste with Ctrl+V)">📎<input id="image" type="file" accept="image/*" hidden></label>
+      <input id="text" autocomplete="off" placeholder="Type, paste code, or Ctrl+V a screenshot — works in voice sessions too">
+      <button class="primary">Send</button>
+    </form>
+  </main>
+  <div id="resizeSidebar" class="pane-resizer" role="separator" aria-orientation="vertical" aria-label="Resize course list and lesson pane" tabindex="0" title="Drag to resize · double-click to reset"></div>
+  <div id="resizeChat" class="pane-resizer" role="separator" aria-orientation="vertical" aria-label="Resize lesson pane and chat" tabindex="0" title="Drag to resize · double-click to reset"></div>
+</div>
+
+<audio id="remoteAudio" autoplay></audio>
+<script src="/static/vendor/marked.min.js"></script>
+<script src="/static/vendor/katex/katex.min.js"></script>
+<script src="/static/vendor/katex/auto-render.min.js"></script>
+<script src="/static/vendor/highlight.min.js"></script>
+<script src="/static/shared.js"></script>
+<script src="/static/pet.js"></script>
+<script src="/static/app.js?v=20260927-1"></script>
+<script src="/static/warroom.js?v=20260927-2"></script>
+<script src="/static/layout.js?v=20260927-2"></script>
+</body>
+</html>

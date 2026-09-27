@@ -1,0 +1,11 @@
+.env
+.venv/
+data/
+__pycache__/
+*.pyc
+.pytest_cache/
+courses/*/material/*
+!courses/*/material/.keep
+work/
+*.db
+HANDOFF.md

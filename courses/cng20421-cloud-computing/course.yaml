@@ -1,0 +1,11 @@
+name: Cloud Computing
+code: CNG20421N1
+instructor: Stephen Han
+term: Fall 2026
+kind: tech
+order: 1
+# Anything the tutor should know about how this class works / is graded:
+notes: >
+  Cloud computing course with hands-on AWS labs (AWS Academy Cloud Architecting) and written lab
+  reports. Emphasize WHY an architecture choice is made — trade-offs in cost, availability,
+  security, and performance — not just service names.
