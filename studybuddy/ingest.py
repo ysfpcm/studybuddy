@@ -183,7 +183,11 @@ def index_course(conn: Conn, courses_dir: Path, slug: str) -> dict:
             continue
         rel = path.relative_to(root).as_posix()
         seen.add(rel)
-        sha = _sha(path)
+        try:
+            sha = _sha(path)
+        except OSError as e:
+            stats["errors"].append(f"{rel}: {e}")
+            continue
         row = conn.execute("SELECT sha FROM files WHERE course=? AND path=?", (slug, rel)).fetchone()
         if row and row["sha"] == sha:
             stats["skipped"] += 1
