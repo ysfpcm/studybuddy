@@ -1,3 +1,4 @@
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,6 +9,64 @@ from studybuddy.db import connect
 
 
 class IndexingErrorsTest(unittest.TestCase):
+    def test_unscannable_directory_preserves_index_until_retry(self):
+        for use_fts in (True, False):
+            with self.subTest(use_fts=use_fts), tempfile.TemporaryDirectory() as temp:
+                courses = Path(temp) / "courses"
+                material = courses / "net101" / "material"
+                material.mkdir(parents=True)
+                lesson = material / "lesson.txt"
+                lesson.write_text("routers forward packets", encoding="utf-8")
+                readable = courses / "net101" / "readable.txt"
+                readable.write_text("original content", encoding="utf-8")
+                conn = connect(":memory:")
+                self.addCleanup(conn.close)
+                if use_fts and not conn.fts:
+                    continue
+                conn.fts = use_fts
+                ingest.index_course(conn, courses, "net101")
+                readable.write_text("replacement content", encoding="utf-8")
+
+                original_scandir = os.scandir
+
+                def blocked_scandir(path):
+                    if Path(path) == material:
+                        raise PermissionError(13, "Access denied", str(path))
+                    return original_scandir(path)
+
+                with patch("os.scandir", side_effect=blocked_scandir):
+                    stats = ingest.index_course(conn, courses, "net101")
+                self.assertEqual(stats["removed"], 0)
+                self.assertTrue(stats["errors"])
+                self.assertIn("Access denied", stats["errors"][0])
+                self.assertTrue(retrieval.search(conn, "net101", "routers"))
+                self.assertTrue(retrieval.search(conn, "net101", "original"))
+                self.assertFalse(retrieval.search(conn, "net101", "replacement"))
+
+                lesson.unlink()
+                retry = ingest.index_course(conn, courses, "net101")
+                self.assertEqual(retry["removed"], 1)
+                self.assertEqual(retry["updated"], 1)
+                self.assertFalse(retry["errors"])
+                self.assertFalse(retrieval.search(conn, "net101", "routers"))
+                self.assertTrue(retrieval.search(conn, "net101", "replacement"))
+
+    def test_missing_course_preserves_index(self):
+        with tempfile.TemporaryDirectory() as temp:
+            courses = Path(temp) / "courses"
+            root = courses / "net101"
+            root.mkdir(parents=True)
+            (root / "lesson.txt").write_text("routers forward packets", encoding="utf-8")
+            conn = connect(":memory:")
+            self.addCleanup(conn.close)
+            ingest.index_course(conn, courses, "net101")
+            root.rename(courses / "offline")
+
+            stats = ingest.index_course(conn, courses, "net101")
+            self.assertEqual(stats["removed"], 0)
+            self.assertTrue(stats["errors"])
+            self.assertTrue(retrieval.search(conn, "net101", "routers"))
+
     def test_unreadable_files_do_not_abort_indexing(self):
         for use_fts in (True, False):
             with self.subTest(use_fts=use_fts), tempfile.TemporaryDirectory() as temp:
