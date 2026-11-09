@@ -5,13 +5,13 @@ import re
 
 from .db import Conn
 
-_STOP = {"the", "a", "an", "of", "to", "in", "is", "and", "or", "for", "on", "what", "how", "why",
+_STOP = {"the", "a", "an", "i", "of", "to", "in", "is", "and", "or", "for", "on", "what", "how", "why",
          "does", "do", "it", "this", "that", "with", "are", "be", "as", "by", "at", "from", "can"}
 
 
 def _terms(query: str) -> list[str]:
     words = re.findall(r"[A-Za-z0-9_]+", query.lower())
-    return [w for w in words if w not in _STOP and len(w) > 1][:12]
+    return [w for w in words if w not in _STOP][:12]
 
 
 def search(conn: Conn, course: str, query: str, k: int = 5) -> list[dict]:
