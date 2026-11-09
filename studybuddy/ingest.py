@@ -7,6 +7,7 @@ Re-running is cheap: unchanged files (same sha1) are skipped.
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 from dataclasses import dataclass
 from functools import lru_cache
@@ -173,16 +174,29 @@ def _delete_file(conn: Conn, course: str, rel: str) -> None:
     conn.execute("DELETE FROM files WHERE course=? AND path=?", (course, rel))
 
 
+def _raise_scan_error(error: OSError) -> None:
+    raise error
+
+
 def index_course(conn: Conn, courses_dir: Path, slug: str) -> dict:
     """Index new/changed files in courses/<slug>/, drop deleted ones. Returns stats."""
     root = courses_dir / slug
     stats = {"added": 0, "updated": 0, "removed": 0, "skipped": 0, "errors": []}
+    try:
+        paths = sorted(Path(directory) / name
+                       for directory, _, filenames in os.walk(root, onerror=_raise_scan_error)
+                       for name in filenames)
+    except OSError as e:
+        stats["errors"].append(f"Unable to scan {root}: {e}")
+        return stats
     seen = set()
-    for path in sorted(root.rglob("*")):
-        if not path.is_file() or path.suffix.lower() not in SUPPORTED or path.name == "course.yaml":
+    for path in paths:
+        if path.suffix.lower() not in SUPPORTED or path.name == "course.yaml":
             continue
         rel = path.relative_to(root).as_posix()
         seen.add(rel)
+        if not path.is_file():
+            continue
         try:
             sha = _sha(path)
         except OSError as e:
