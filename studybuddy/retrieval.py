@@ -26,7 +26,11 @@ def search(conn: Conn, course: str, query: str, k: int = 5) -> list[dict]:
             "WHERE chunks_fts MATCH ? AND c.course = ? ORDER BY score LIMIT ?",
             (match, course, k)).fetchall()
     else:
-        like = " + ".join("(instr(lower(text), ?) > 0)" for _ in terms)
+        like = " + ".join(
+            "((' ' || lower(text) || ' ') GLOB ('*[^a-z0-9]' || ? || '[^a-z0-9]*'))"
+            if len(term) == 1 else "(instr(lower(text), ?) > 0)"
+            for term in terms
+        )
         rows = conn.execute(
             f"SELECT path, locator, text, -({like}) AS score FROM chunks WHERE course = ? "
             f"ORDER BY score LIMIT ?", (*terms, course, k)).fetchall()
