@@ -43,6 +43,33 @@ class RetrievalTest(unittest.TestCase):
     def test_single_letter_search_with_fallback(self):
         self.check_single_letter_search(use_fts=False)
 
+    def test_single_letter_search_ignores_embedded_letters(self):
+        with tempfile.TemporaryDirectory() as directory:
+            courses = Path(directory)
+            material = courses / "programming" / "material"
+            material.mkdir(parents=True)
+            for number in range(6):
+                (material / f"a-network-{number}.txt").write_text(
+                    "Routers forward packets across networks.", encoding="utf-8")
+            (material / "z-cpp.txt").write_text("C++ pointers store memory addresses.", encoding="utf-8")
+            (material / "z-c.txt").write_text("The language is C.", encoding="utf-8")
+            (material / "z-r.txt").write_text("R vectors hold statistical data.", encoding="utf-8")
+
+            with closing(connect(":memory:")) as conn:
+                ingest.index_course(conn, courses, "programming")
+                fts_available = conn.fts
+                for use_fts in (False, True):
+                    if use_fts and not fts_available:
+                        continue
+                    with self.subTest(use_fts=use_fts):
+                        conn.fts = use_fts
+                        self.assertEqual({hit["source"] for hit in retrieval.search(conn, "programming", "C++")},
+                                         {"material/z-cpp.txt", "material/z-c.txt"})
+                        self.assertEqual([hit["source"] for hit in retrieval.search(conn, "programming", "R")],
+                                         ["material/z-r.txt"])
+                        self.assertEqual(retrieval.search(conn, "programming", "C++ pointers", k=1)[0]["source"],
+                                         "material/z-cpp.txt")
+
 
 if __name__ == "__main__":
     unittest.main()
