@@ -74,7 +74,7 @@ def clean_text(text: str) -> str:
         p = "\n".join(lines).strip()
         if not p:
             continue
-        key = re.sub(r"\W+", "", p.lower())[:300]
+        key = re.sub(r"\W+", "", p.lower())
         if len(key) > 40 and key in seen:
             continue
         seen.add(key)
