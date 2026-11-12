@@ -148,10 +148,9 @@ async function readTab(tabId) {
   // Order: frames with the most text first, and drop exact duplicates (the same frame can load twice).
   const seen = new Set(), parts = [];
   for (const f of [...frames].sort((a, b) => b.text.length - a.text.length)) {
-    const key = f.text.replace(/\W+/g, "").slice(0, 600);
-    if (seen.has(key)) continue;
-    seen.add(key);
     if (f === top && frames.length > 1 && f.text.length < 600) continue; // top frame is just menus
+    if (seen.has(f.text)) continue;
+    seen.add(f.text);
     parts.push(f.text);
   }
   const withSection = frames.find((f) => f.section) || {};
