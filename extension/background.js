@@ -135,7 +135,7 @@ function sbObserve() {
 }
 
 // ---------- background logic ----------
-let pushTimer = null, saveTimer = null, lastHash = "";
+let pushTimer = null, saveTimer = null, lastHash = "", followGeneration = 0;
 
 function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return String(h); }
 
@@ -164,28 +164,39 @@ async function badge(tabId, text, color) {
 }
 
 async function push(tabId, { save = false, force = false } = {}) {
+  const generation = followGeneration;
   let data;
   try { data = await readTab(tabId); }
-  catch (e) { await session.set({ lastPush: { ok: false, error: e.message, at: Date.now() } }); await badge(tabId, "!", "#c9473d"); return; }
+  catch (e) {
+    if (generation !== followGeneration) return;
+    await session.set({ lastPush: { ok: false, error: e.message, at: Date.now() } });
+    await badge(tabId, "!", "#c9473d"); return;
+  }
+  if (generation !== followGeneration) return;
   const h = hash(data.url + data.title + data.text + data.selection);
   const changed = h !== lastHash;
   if (!changed && !save && !force) return;
   const { autosave = false, course = "" } = await local.get(["autosave", "course"]);
+  if (generation !== followGeneration) return;
   try {
     const r = await fetch(`${SERVER}/api/page`, { method: "POST", headers: HEADERS,
       body: JSON.stringify({ ...data, save, course: course || null }) });
     const body = await r.json().catch(() => ({}));
+    if (generation !== followGeneration) return;
     if (!r.ok) throw new Error(body.detail || `HTTP ${r.status}`);
     lastHash = h;
     await session.set({ lastPush: { ok: true, title: body.title || data.title, chars: data.text.length,
       at: Date.now(), saved: body.saved || null, activity: !!body.activity } });
+    if (generation !== followGeneration) return;
     await badge(tabId, "ON", "#2e9d62");
+    if (generation !== followGeneration) return;
     if (changed) clearTimeout(saveTimer);
     if (autosave && changed && !save && !body.activity && data.text.length > 800) { // save settled lessons, not labs
       saveTimer = setTimeout(() => push(tabId, { save: true }), 8000);
     }
     return body;
   } catch (e) {
+    if (generation !== followGeneration) return;
     await session.set({ lastPush: { ok: false, error: `Study Buddy isn't reachable (${e.message}). Is run.bat running?`, at: Date.now() } });
     await badge(tabId, "!", "#c9473d");
   }
@@ -197,40 +208,55 @@ function schedulePush(tabId, delay = 700, force = false) {
 }
 
 async function startFollowing(tabId) {
-  await session.set({ followTabId: tabId }); lastHash = "";
+  const generation = ++followGeneration;
+  clearTimeout(pushTimer); clearTimeout(saveTimer);
+  await session.set({ followTabId: tabId });
+  if (generation !== followGeneration) return;
+  lastHash = "";
   try { await chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: sbObserve }); } catch (e) {}
+  if (generation !== followGeneration) return;
   return push(tabId, { force: true });
 }
 
 async function stopFollowing() {
+  const generation = ++followGeneration;
+  clearTimeout(pushTimer); clearTimeout(saveTimer);
   const { followTabId } = await session.get("followTabId");
+  if (generation !== followGeneration) return;
   if (followTabId != null) await badge(followTabId, "", null);
-  await session.set({ followTabId: null, lastPush: null }); lastHash = "";
+  if (generation !== followGeneration) return;
+  await session.set({ followTabId: null, lastPush: null });
+  if (generation !== followGeneration) return;
+  lastHash = "";
   try { await fetch(`${SERVER}/api/page`, { method: "DELETE", headers: HEADERS }); } catch (e) {}
 }
 
 chrome.tabs.onUpdated.addListener(async (tabId, info) => {
+  const generation = followGeneration;
   const { followTabId } = await session.get("followTabId");
-  if (tabId !== followTabId) return;
+  if (generation !== followGeneration || tabId !== followTabId) return;
   if (info.status === "complete") {
     try { await chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: sbObserve }); } catch (e) {}
+    if (generation !== followGeneration) return;
     schedulePush(tabId, 600);
   } else if (info.url) schedulePush(tabId, 1200);
 });
 chrome.tabs.onRemoved.addListener(async (tabId) => {
+  const generation = followGeneration;
   const { followTabId } = await session.get("followTabId");
-  if (tabId === followTabId) stopFollowing();
+  if (generation === followGeneration && tabId === followTabId) stopFollowing();
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   (async () => {
+    const generation = followGeneration;
     const { followTabId } = await session.get("followTabId");
     switch (msg.type) {
       case "sb-changed":
-        if (sender.tab && sender.tab.id === followTabId) schedulePush(followTabId);
+        if (generation === followGeneration && sender.tab && sender.tab.id === followTabId) schedulePush(followTabId);
         return reply({});
       case "sb-heartbeat":
-        if (sender.tab && sender.tab.id === followTabId) schedulePush(followTabId, 0, true);
+        if (generation === followGeneration && sender.tab && sender.tab.id === followTabId) schedulePush(followTabId, 0, true);
         return reply({});
       case "status": {
         const { lastPush } = await session.get("lastPush");
