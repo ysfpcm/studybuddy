@@ -149,9 +149,11 @@ def _best_window(text: str, focus: str, size: int) -> tuple[str, int]:
             j += 1
         if total > best_score:
             best_score, best_i = total, i
-    # start a little before the first matching paragraph in that window, so the hits sit near the top
     first_hit = next((k for k in range(best_i, len(paras)) if scores[k]), best_i)
-    start = max(0, offsets[first_hit] - size // 5)
+    line = paras[first_hit].lower()
+    matches = [line.find(word) for word in words]
+    first_match = min((pos for pos in matches if pos >= 0), default=0)
+    start = max(0, offsets[first_hit] + first_match - size // 5)
     return text[start:start + size], start
 
 
