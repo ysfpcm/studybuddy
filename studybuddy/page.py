@@ -10,7 +10,7 @@ import re
 import time
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import unquote_plus, urlsplit, urlunsplit
 
 MAX_STORED = 200_000      # chars kept from one page
 TOOL_WINDOW = 14_000      # chars returned to the model per read_page call (~3.5k tokens)
@@ -87,10 +87,12 @@ def headings_of(text: str) -> list[str]:
 
 
 def canonical(url: str) -> str:
-    """URL without query/fragment (CertMaster adds a new ?nonce= on every visit)."""
+    """Ignore changing nonces and fragments while preserving lesson-identifying parameters."""
     try:
         u = urlsplit(url)
-        return f"{u.scheme}://{u.netloc}{u.path}".rstrip("/")
+        query = "&".join(part for part in u.query.split("&")
+                         if unquote_plus(part.partition("=")[0]) != "nonce")
+        return urlunsplit((u.scheme, u.netloc, u.path.rstrip("/"), query, ""))
     except ValueError:
         return url
 
