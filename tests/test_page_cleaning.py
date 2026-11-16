@@ -45,6 +45,54 @@ class PageCleaningTest(unittest.TestCase):
             self.assertEqual(replaced, [])
             self.assertTrue(first.exists())
 
+    def test_numbered_lessons_with_shared_url_remain_separate(self):
+        page.clear()
+        self.addCleanup(page.clear)
+        with tempfile.TemporaryDirectory() as directory:
+            courses = Path(directory)
+            first_text = "The first lesson explains network switches. " * 10
+            second_text = "The second lesson explains network routers. " * 10
+            page.set_page("https://example.test/lesson?nonce=old", "Lesson", first_text,
+                          section="1.1.1", section_title="Switches")
+            first, _ = page.save_to_course(courses, "networking")
+            page.set_page("https://example.test/lesson?nonce=new", "Lesson", second_text,
+                          section="1.1.2", section_title="Routers")
+            second, replaced = page.save_to_course(courses, "networking")
+
+            self.assertEqual(replaced, [])
+            self.assertIn(first_text.strip(), first.read_text(encoding="utf-8"))
+            self.assertIn(second_text.strip(), second.read_text(encoding="utf-8"))
+
+            page.set_page("https://example.test/lesson", "Lesson", first_text,
+                          section="1.1.1", section_title="Network Switches")
+            renamed, replaced = page.save_to_course(courses, "networking")
+            self.assertEqual(replaced, [first])
+            self.assertFalse(first.exists())
+            self.assertTrue(renamed.exists())
+            self.assertTrue(second.exists())
+
+            page.set_page("https://example.test/lesson", "Lesson", second_text)
+            unnumbered, replaced = page.save_to_course(courses, "networking")
+            self.assertEqual(replaced, [])
+            self.assertTrue(renamed.exists())
+            self.assertTrue(second.exists())
+            self.assertTrue(unnumbered.exists())
+
+    def test_numbered_lesson_replaces_unnumbered_copy(self):
+        page.clear()
+        self.addCleanup(page.clear)
+        with tempfile.TemporaryDirectory() as directory:
+            courses = Path(directory)
+            text = "A lesson about computer networks. " * 10
+            page.set_page("https://example.test/lesson?nonce=old", "Lesson", text)
+            old, _ = page.save_to_course(courses, "networking")
+            page.set_page("https://example.test/lesson?nonce=new", "Lesson", text,
+                          section="1.1.1", section_title="Switches")
+            saved, replaced = page.save_to_course(courses, "networking")
+            self.assertEqual(replaced, [old])
+            self.assertFalse(old.exists())
+            self.assertTrue(saved.exists())
+
     def test_old_saved_path_is_replaced_for_same_query(self):
         page.clear()
         self.addCleanup(page.clear)
