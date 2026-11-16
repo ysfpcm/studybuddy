@@ -215,7 +215,7 @@ def _header(path: Path) -> dict:
 
 def save_to_course(courses_dir: Path, course: str) -> tuple[Path, list[Path]]:
     """Write the current page into courses/<course>/material/pages/. Returns (path, replaced_paths):
-    older copies of the same lesson (same section, or same address minus ?nonce) are removed."""
+    older copies of the same lesson (same section, or an unnumbered copy at the same address) are removed."""
     if not _page or len(_page["text"]) < 200:
         raise ValueError("No page with enough lesson text to save yet.")
     path = note_path(courses_dir, course)
@@ -226,7 +226,8 @@ def save_to_course(courses_dir: Path, course: str) -> tuple[Path, list[Path]]:
         if other == path:
             continue
         h = _header(other)
-        if (_page["section"] and h.get("section") == _page["section"]) or h.get("source") == here:
+        if ((_page["section"] and h.get("section") == _page["section"])
+                or (not h.get("section") and h.get("source") == here)):
             replaced.append(other)
     header = f"# {_page['title']}\n\nSource: {_page['url']}\n"
     if _page["section"]:
