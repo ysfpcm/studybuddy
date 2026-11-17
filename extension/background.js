@@ -144,11 +144,9 @@ async function readTab(tabId) {
   const frames = results.map((r) => r.result).filter((r) => r && r.text && r.text.trim().length > 40);
   if (!frames.length) throw new Error("No readable text on this page (PDF viewer, video only, or a browser page).");
   const top = frames.find((f) => f.top) || frames[0];
-  // Lesson content usually lives in an embedded frame; the top frame is mostly the platform's menus.
-  // Order: frames with the most text first, and drop exact duplicates (the same frame can load twice).
+  // Order frames with the most text first and drop exact duplicates (the same frame can load twice).
   const seen = new Set(), parts = [];
   for (const f of [...frames].sort((a, b) => b.text.length - a.text.length)) {
-    if (f === top && frames.length > 1 && f.text.length < 600) continue; // top frame is just menus
     if (seen.has(f.text)) continue;
     seen.add(f.text);
     parts.push(f.text);
