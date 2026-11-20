@@ -132,7 +132,15 @@ def clear() -> None:
 
 
 def _best_window(text: str, focus: str, size: int) -> tuple[str, int]:
-    """Pick the slice of a long page most relevant to `focus` (keyword density per paragraph)."""
+    """Pick a long-page slice by section number or keyword density."""
+    section = re.search(r"(?<![\d.])\d{1,2}(?:\.\d{1,2}){1,3}(?!\d|\.\d)", focus)
+    if section:
+        pattern = rf"(?<![\d.]){re.escape(section.group())}(?!\d|\.\d)"
+        match = (re.search(rf"(?m)^[ \t]*(?:#{{1,6}}[ \t]+[^\n]*?)?{pattern}", text)
+                 or re.search(pattern, text))
+        if match:
+            start = max(0, match.start() - size // 5)
+            return text[start:start + size], start
     words = [w for w in re.findall(r"[a-z0-9]+", focus.lower()) if len(w) > 2]
     paras = text.split("\n")
     if not words:

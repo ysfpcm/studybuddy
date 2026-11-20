@@ -161,6 +161,55 @@ class PageCleaningTest(unittest.TestCase):
         self.assertEqual(unmatched["showing_from_char"], 0)
         self.assertEqual(unmatched["text"], text[:page.TOOL_WINDOW])
 
+    def test_focus_finds_exact_numbered_heading(self):
+        page.clear()
+        self.addCleanup(page.clear)
+        filler = "Routing moves traffic across networks. " * 600
+        text = ("See 1.1.2 for routing tables.\n\n"
+                "## 1.1.20 Routing introduction\n\n" + filler + "\n\n"
+                "## 1.1.2 Routing tables\n\nThe requested lesson explains routing tables.\n\n" + filler)
+        page.set_page("https://example.test/lesson", "Networking", text)
+
+        for focus in ("1.1.2", "walk me through 1.1.2 routing"):
+            with self.subTest(focus=focus):
+                result = page.read(focus)
+                self.assertGreater(result["showing_from_char"], 0)
+                self.assertIn("## 1.1.2 Routing tables", result["text"])
+                self.assertNotIn("## 1.1.20 Routing introduction", result["text"])
+
+    def test_focus_finds_numbered_section_without_heading_markup(self):
+        page.clear()
+        self.addCleanup(page.clear)
+        text = ("Network devices exchange data. " * 600 + "\n\n"
+                "1.2.3\nSubnetting\nThe requested lesson explains subnets.")
+        page.set_page("https://example.test/lesson", "Networking", text)
+
+        result = page.read("1.2.3")
+        self.assertGreater(result["showing_from_char"], 0)
+        self.assertIn("1.2.3\nSubnetting", result["text"])
+
+    def test_numbered_focus_does_not_match_longer_section_numbers(self):
+        page.clear()
+        self.addCleanup(page.clear)
+        text = ("Network devices exchange data. " * 600 + "\n\n"
+                "## 1.1.20 Different section\n\n## 1.1.2.3 Another section")
+        page.set_page("https://example.test/lesson", "Networking", text)
+
+        result = page.read("1.1.2")
+        self.assertEqual(result["showing_from_char"], 0)
+        self.assertEqual(result["text"], text[:page.TOOL_WINDOW])
+
+    def test_missing_numbered_section_falls_back_to_keywords(self):
+        page.clear()
+        self.addCleanup(page.clear)
+        text = ("Network devices exchange data. " * 600 + "\n\n"
+                "## Wireless networks\n\nWireless access points connect devices.")
+        page.set_page("https://example.test/lesson", "Networking", text)
+
+        result = page.read("1.2.3 wireless")
+        self.assertGreater(result["showing_from_char"], 0)
+        self.assertIn("## Wireless networks", result["text"])
+
 
 if __name__ == "__main__":
     unittest.main()
