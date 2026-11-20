@@ -158,8 +158,10 @@ def _ensure_lesson_concepts(conn: Conn, s: Settings, courses_dir: Path, course: 
         return
     with lock or nullcontext():
         lesson = notes.note_text(conn, courses_dir, course, note_id)
+        if len(lesson.strip()) < 150:
+            return
         section = notes.section_of(Path(note_id).stem.replace("-", ".")) or notes.section_of(lesson.splitlines()[0])
-        if not section or len(lesson.strip()) < 150:
+        if not section:
             return
         present = conn.execute("SELECT 1 FROM concepts WHERE course=? AND unit LIKE ? LIMIT 1",
                                (course, f"{section} %")).fetchone()
