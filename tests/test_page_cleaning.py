@@ -129,6 +129,20 @@ class PageCleaningTest(unittest.TestCase):
             saved, _ = page.save_to_course(Path(directory), "networking")
             self.assertIn(first + "\n\n" + second, saved.read_text(encoding="utf-8"))
 
+    def test_code_paragraphs_keep_significant_punctuation_and_case(self):
+        first = "Check the configured network threshold before forwarding packets: value > 100."
+        second = "Check the configured network threshold before forwarding packets: value < 100."
+        third = "Check the configured network threshold before forwarding packets: Value < 100."
+        expected = "\n\n".join([first, second, third])
+        page.clear()
+        self.addCleanup(page.clear)
+        page.set_page("https://example.test/lesson", "Networking", "\n\n".join([first, first, second, third]))
+
+        self.assertEqual(page.read()["text"], expected)
+        with tempfile.TemporaryDirectory() as directory:
+            saved, _ = page.save_to_course(Path(directory), "networking")
+            self.assertIn(expected, saved.read_text(encoding="utf-8"))
+
     def test_focus_finds_content_inside_long_paragraph(self):
         page.clear()
         self.addCleanup(page.clear)

@@ -74,10 +74,9 @@ def clean_text(text: str) -> str:
         p = "\n".join(lines).strip()
         if not p:
             continue
-        key = re.sub(r"\W+", "", p.lower())
-        if len(key) > 40 and key in seen:
+        if len(re.sub(r"\W+", "", p)) > 40 and p in seen:
             continue
-        seen.add(key)
+        seen.add(p)
         out.append(p)
     return "\n\n".join(out)[:MAX_STORED]
 
