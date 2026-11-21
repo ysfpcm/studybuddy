@@ -6,6 +6,23 @@ from studybuddy import page
 
 
 class PageCleaningTest(unittest.TestCase):
+    def test_page_hash_tracks_title_and_section_changes(self):
+        page.clear()
+        self.addCleanup(page.clear)
+        url = "https://example.test/lesson"
+        text = "A lesson about computer networks. " * 10
+        first = page.set_page(url, "Lesson", text, section="1.1.1", section_title="Switches")
+        unchanged = page.set_page(url + "?nonce=new", "Lesson", text,
+                                  section="1.1.1", section_title="Switches")
+        self.assertEqual(first["hash"], unchanged["hash"])
+        next_section = page.set_page(url, "Lesson", text, section="1.1.2", section_title="Switches")
+        self.assertNotEqual(first["hash"], next_section["hash"])
+        renamed = page.set_page(url, "Lesson", text, section="1.1.2", section_title="Routers")
+        self.assertNotEqual(next_section["hash"], renamed["hash"])
+        unnumbered = page.set_page(url, "Lesson", text)
+        new_title = page.set_page(url, "Updated lesson", text)
+        self.assertNotEqual(unnumbered["hash"], new_title["hash"])
+
     def test_query_identifies_distinct_saved_lessons(self):
         page.clear()
         self.addCleanup(page.clear)
