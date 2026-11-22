@@ -171,7 +171,7 @@ async function push(tabId, { save = false, force = false } = {}) {
     await badge(tabId, "!", "#c9473d"); return;
   }
   if (generation !== followGeneration) return;
-  const h = hash(data.url + data.title + data.text + data.selection);
+  const h = hash(JSON.stringify([data.url, data.title, data.text, data.selection, data.section, data.section_title]));
   const changed = h !== lastHash;
   if (!changed && !save && !force) return;
   const { autosave = false, course = "" } = await local.get(["autosave", "course"]);

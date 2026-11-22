@@ -6,6 +6,7 @@ Page text is DATA from a website — the tutor is told never to follow instructi
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import time
 from datetime import datetime
@@ -106,7 +107,8 @@ def set_page(url: str, title: str, text: str, selection: str = "", section: str 
         if m:
             section, section_title = m.group(1), m.group(2) or section_title
     nice_title = f"{section} {section_title}".strip() if section else (title or url or "Untitled").strip()
-    h = hashlib.sha1((canonical(url) + "\n" + text).encode("utf-8", "ignore")).hexdigest()[:12]
+    identity = json.dumps([canonical(url), nice_title, section, section_title, text], ensure_ascii=False)
+    h = hashlib.sha1(identity.encode("utf-8", "ignore")).hexdigest()[:12]
     changed = h != _page.get("hash")
     _page.update(url=url, title=nice_title, raw_title=(title or "").strip(), text=text,
                  section=section, section_title=section_title, headings=headings_of(text),

@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 
-function createHarness({ readGate = null, postGate = null } = {}) {
+function createHarness({ readGate = null, postGate = null, frame = null } = {}) {
   const stored = {};
   const timers = new Map();
   const reads = [];
@@ -23,7 +23,7 @@ function createHarness({ readGate = null, postGate = null } = {}) {
         if (func.name === "sbObserve") return [];
         reads.push(target.tabId);
         if (readGate) await readGate;
-        return [{ result: { top: true, url: `https://example.test/${target.tabId}`,
+        return [{ result: frame || { top: true, url: `https://example.test/${target.tabId}`,
           title: `Tab ${target.tabId}`, text: "Lesson text ".repeat(100) } }];
       },
     },
@@ -52,6 +52,24 @@ async function runTimers(timers) {
 }
 
 async function main() {
+  const frame = { top: true, url: "https://example.test/lesson", title: "Lesson",
+    text: "Lesson text ".repeat(100), section: "1.1.1", sectionTitle: "Switches" };
+  const sections = createHarness({ frame });
+  await sections.context.startFollowing(1);
+  await sections.context.push(1);
+  assert.equal(sections.requests.length, 1, "unchanged pages must not be resent");
+  frame.section = "1.1.2";
+  await sections.context.push(1);
+  assert.equal(sections.requests.length, 2, "a section change must be synced");
+  assert.equal(sections.requests[1].body.section, "1.1.2");
+  frame.sectionTitle = "Routers";
+  await sections.context.push(1);
+  assert.equal(sections.requests.length, 3, "a section title change must be synced");
+  await runTimers(sections.timers);
+  assert.equal(sections.requests.length, 4, "the updated section must be autosaved");
+  assert.equal(sections.requests[3].body.save, true);
+  assert.equal(sections.requests[3].body.section_title, "Routers");
+
   const stopped = createHarness();
   await stopped.context.startFollowing(1);
   stopped.context.schedulePush(1);
