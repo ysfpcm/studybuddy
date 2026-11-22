@@ -141,9 +141,10 @@ function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s
 
 async function readTab(tabId) {
   const results = await chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: sbExtract });
-  const frames = results.map((r) => r.result).filter((r) => r && r.text && r.text.trim().length > 40);
+  const extracted = results.map((r) => r.result).filter(Boolean);
+  const frames = extracted.filter((r) => r.text && r.text.trim().length > 40);
   if (!frames.length) throw new Error("No readable text on this page (PDF viewer, video only, or a browser page).");
-  const top = frames.find((f) => f.top) || frames[0];
+  const top = extracted.find((f) => f.top) || frames[0];
   // Order frames with the most text first and drop exact duplicates (the same frame can load twice).
   const seen = new Set(), parts = [];
   for (const f of [...frames].sort((a, b) => b.text.length - a.text.length)) {
