@@ -2,7 +2,7 @@
 
 Layout:  courses/<course-slug>/course.yaml      (name, notes for the tutor)
          courses/<course-slug>/material/...     (PDF, PPTX, DOCX, MD, TXT, code)
-Re-running is cheap: unchanged files (same sha1) are skipped.
+Re-running is cheap: unchanged files with the current index version are skipped.
 """
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ SUPPORTED = CODE_EXT | TEXT_EXT | {".pdf", ".pptx", ".docx"}
 
 CHUNK_CHARS = 1400
 OVERLAP = 200
+INDEX_VERSION = "2"
 
 
 @dataclass
@@ -105,10 +106,10 @@ def extract(path: Path) -> Iterator[Piece]:
 
 
 def split(text: str, size: int = CHUNK_CHARS, overlap: int = OVERLAP) -> list[str]:
-    text = re.sub(r"[ \t]+", " ", text)
-    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    if not text.strip():
+        return []
     if len(text) <= size:
-        return [text] if text else []
+        return [text]
     out, start = [], 0
     while start < len(text):
         end = min(start + size, len(text))
@@ -116,11 +117,11 @@ def split(text: str, size: int = CHUNK_CHARS, overlap: int = OVERLAP) -> list[st
             cut = max(text.rfind("\n\n", start, end), text.rfind(". ", start, end))
             if cut > start + size // 2:
                 end = cut + 1
-        out.append(text[start:end].strip())
+        out.append(text[start:end])
         if end >= len(text):
             break
         start = max(end - overlap, start + 1)
-    return [c for c in out if c]
+    return [c for c in out if c.strip()]
 
 
 # ---------- courses ----------
@@ -198,7 +199,7 @@ def index_course(conn: Conn, courses_dir: Path, slug: str) -> dict:
         if not path.is_file():
             continue
         try:
-            sha = _sha(path)
+            sha = f"{INDEX_VERSION}:{_sha(path)}"
         except OSError as e:
             stats["errors"].append(f"{rel}: {e}")
             continue
