@@ -52,6 +52,25 @@ async function main() {
   const embedded = await context.readTab(42);
   assert(embedded.text.includes(introduction), "a readable frame must not be mistaken for the top frame");
   assert(embedded.text.includes(transcript));
+  assert.equal(embedded.url, "https://example.test/lesson", "the followed tab must supply the page URL");
+  assert.equal(embedded.title, "Lesson", "the followed tab must supply the page title");
+
+  chrome.scripting.executeScript = async () => [
+    { result: { top: true, url: "https://example.test/empty", title: "Empty shell", text: "" } },
+    { result: { top: false, url: "https://example.test/transcript", title: "Transcript", text: transcript } },
+  ];
+  const emptyShell = await context.readTab(42);
+  assert.equal(emptyShell.url, "https://example.test/empty");
+  assert.equal(emptyShell.title, "Empty shell");
+  assert.equal(emptyShell.text, transcript);
+
+  chrome.scripting.executeScript = async () => [
+    { result: null },
+    { result: { top: false, url: "https://example.test/transcript", title: "Transcript", text: transcript } },
+  ];
+  const withoutTop = await context.readTab(42);
+  assert.equal(withoutTop.url, "https://example.test/transcript");
+  assert.equal(withoutTop.title, "Transcript");
 }
 
 main().catch((error) => { console.error(error); process.exitCode = 1; });
